@@ -12,7 +12,7 @@
                 return;
             }
 
-            $this.next('.dropdown-menu').hide();
+            $this.next('.dropdown-menu').hide().trigger('hidden.bs.dropdown');
             $parent.removeClass('open');
         });
     }
@@ -27,7 +27,7 @@
             clearMenus();
 
             if (!isOpen) {
-                dropdown.show();
+                dropdown.show().trigger('shown.bs.dropdown');
                 $parent.addClass('open');
 
                 if ('ontouchstart' in document.documentElement  && !$parent.closest('.navbar-nav').length) {

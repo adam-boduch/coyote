@@ -9,6 +9,7 @@ import { default as Textarea, languages } from '../libs/textarea';
             let el          = new Textarea(textarea[0]);
             let toolbar     = $('#wiki-toolbar');
             let select      = $('.select-menu-wrapper', toolbar).find('ul');
+            let langMenuOpen = false;
 
             $.each(languages, function(key, value) {
                 select.append('<li><a data-open="```' + key + '<br>" data-close="<br>```" title="Kod źródłowy: ' + value + '">' + value + '</a></li>');
@@ -41,8 +42,109 @@ import { default as Textarea, languages } from '../libs/textarea';
             });
 
             $('#select-menu', toolbar).on('shown.bs.dropdown', function() {
-                $('.select-menu-search input').focus();
+                setTimeout(function () {
+                  $('.select-menu-search input').focus();
+                }, 0);
+                langMenuOpen = true;
+            }).on('hidden.bs.dropdown', function () {
+                langMenuOpen = false;
             });
+
+            const langNavigator = (e) => {
+                if (langMenuOpen) {
+                    switch (e.keyCode) {
+                        case 13: {
+                          insertActiveLang(e);
+                        }break;
+                        case 38: {
+                          markPrevLangActive();
+                        }break;
+                        case 40: {
+                          markNextLangActive();
+                        }break;
+                    }
+                }
+            };
+
+            const langDropdownMenu = toolbar.find('#select-menu .select-menu');
+            const langScrollableContent = langDropdownMenu.find('.select-menu-wrapper');
+
+            langDropdownMenu.on('mouseenter', () => {
+              unMarkActiveLang();
+            });
+
+            const getActiveLangNode = () => {
+              return langDropdownMenu.find('a.active');
+            };
+
+            const unMarkActiveLang = () => {
+              const activeNode = getActiveLangNode();
+
+              if (activeNode) {
+                activeNode.removeClass('active');
+              }
+            };
+
+            const insertActiveLang = (e) => {
+              const activeNode = getActiveLangNode();
+
+              if (activeNode) {
+                e.preventDefault();
+                activeNode.removeClass('active').trigger('click');
+              }
+            };
+
+            const markNextLangActive = () => {
+              const activeNode = getActiveLangNode();
+
+              if (activeNode.length > 0) {
+                const nextActiveNode = activeNode.closest('li').next().find('a');
+
+                if (nextActiveNode.length > 0) {
+                  nextActiveNode.addClass('active');
+                } else {
+                  langDropdownMenu.find('a').first().addClass('active');
+                }
+
+                activeNode.removeClass('active');
+              } else {
+                langDropdownMenu.find('a').first().addClass('active');
+              }
+
+              scrollToActiveLang();
+            };
+
+            const markPrevLangActive = () => {
+              const activeNode = getActiveLangNode();
+
+              if (activeNode.length > 0) {
+                const prevActiveNode = activeNode.closest('li').prev().find('a');
+
+                if (prevActiveNode.length > 0) {
+                  prevActiveNode.addClass('active');
+                } else {
+                  langDropdownMenu.find('a').last().addClass('active');
+                }
+
+                activeNode.removeClass('active');
+              } else {
+                langDropdownMenu.find('a').last().addClass('active');
+              }
+
+              scrollToActiveLang();
+            };
+
+            const scrollToActiveLang = () => {
+              const activeNode = getActiveLangNode();
+
+              if (activeNode.length > 0) {
+                const parentNode = activeNode.closest('li');
+
+                langScrollableContent.scrollTop(parentNode.index() * parentNode[0].offsetHeight);
+              }
+            };
+
+            $(document).on('keydown', langNavigator);
         });
     };
 })(jQuery);

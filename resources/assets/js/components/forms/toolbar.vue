@@ -31,10 +31,10 @@
               <div class="select-menu-search">
                 <input v-model="searchText" @keyup.esc="hideDropdown" ref="search" type="text" class="form-control form-control-sm" placeholder="Filtruj..." autocomplete="off">
               </div>
-              <div class="select-menu-wrapper">
+              <div class="select-menu-wrapper" ref="langScrollableContent">
                 <ul class="list-unstyled">
-                  <li v-for="(value, key) in filteredValue">
-                    <a @click="insertAtCaret('```' + key + '<br>', '<br>```<br>')">{{ value }}</a>
+                  <li v-for="(value, key) in filteredValue" ref="langNode">
+                    <a @click="insertAtCaret('```' + key + '<br>', '<br>```<br>')" @mouseenter="clearCurrentLang" v-bind:class="[activeLang === key ? 'active' : '']">{{ value }}</a>
                   </li>
                 </ul>
               </div>
@@ -142,11 +142,18 @@
         textarea: null,
         languages,
         searchText: '',
-        isDropdownShown: false
+        isDropdownShown: false,
+        currentLang: undefined
       }
     },
     mounted() {
       this.textarea = new Textarea(this.input());
+    },
+    created() {
+      document.addEventListener('keydown', this.langNavigator);
+    },
+    destroyed() {
+      document.removeEventListener('keydown', this.langNavigator);
     },
     methods: {
       insertAtCaret(startsWith, endsWith) {
@@ -172,10 +179,82 @@
 
       hideDropdown() {
         this.isDropdownShown = false;
+        this.currentLang = undefined;
+      },
+
+      clearCurrentLang() {
+        this.currentLang = undefined;
+      },
+
+      langNavigator(e) {
+        if (this.isDropdownShown) {
+          switch (e.keyCode) {
+            case 13: {
+              this.insertActiveLang(e);
+            }break;
+            case 38: {
+              this.markPrevLangActive();
+            }break;
+            case 40: {
+              this.markNextLangActive();
+            }break;
+          }
+        }
+      },
+
+      insertActiveLang(e) {
+        if (this.currentLang) {
+          e.preventDefault();
+          this.insertAtCaret('```' + this.currentLang + '<br>', '<br>```<br>');
+          this.hideDropdown();
+        }
+      },
+
+      activeLangIndex() {
+        return Object.keys(this.filteredValue).indexOf(this.activeLang)
+      },
+
+      markNextLangActive() {
+        let activeLangIndex = this.activeLangIndex();
+
+        if (activeLangIndex < Object.keys(this.filteredValue).length - 1) {
+          activeLangIndex++;
+        } else {
+          activeLangIndex = 0;
+        }
+
+        this.currentLang = Object.keys(this.filteredValue)[activeLangIndex];
+
+        this.scrollToActiveLang();
+      },
+
+      markPrevLangActive() {
+        let activeLangIndex = this.activeLangIndex();
+
+        if (activeLangIndex > 0) {
+          activeLangIndex--;
+        } else {
+          activeLangIndex = Object.keys(this.filteredValue).length - 1;
+        }
+
+        this.currentLang = Object.keys(this.filteredValue)[activeLangIndex];
+
+        this.scrollToActiveLang();
+      },
+
+      scrollToActiveLang() {
+        const activeLangIndex = this.activeLangIndex();
+
+        this.$refs.langScrollableContent.scrollTop = activeLangIndex * this.$refs.langNode[0].offsetHeight;
       }
     },
     computed: {
+      activeLang() {
+        return this.currentLang;
+      },
       filteredValue() {
+        this.currentLang = undefined;
+
         return Object
           .keys(this.languages)
           .filter(language => language.toLowerCase().startsWith(this.searchText))
